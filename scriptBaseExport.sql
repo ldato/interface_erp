@@ -1,0 +1,49 @@
+USE [UsuariosInterfaces]
+GO
+/****** Object:  Table [dbo].[Usuarios]    Script Date: 04/04/2022 21:02:43 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Usuarios](
+	[UserID] [int] IDENTITY(1,1) NOT NULL,
+	[Username] [varchar](255) NOT NULL,
+	[Pass] [varchar](255) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[UserID] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING OFF
+GO
+/****** Object:  Table [dbo].[Tabla2]    Script Date: 04/04/2022 21:02:43 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Tabla2](
+	[Cargo] [varchar](50) NULL,
+	[Salario] [int] NULL
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING OFF
+GO
+/****** Object:  Table [dbo].[Tabla1]    Script Date: 04/04/2022 21:02:43 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Tabla1](
+	[Nombre] [varchar](50) NULL,
+	[Cargo] [varchar](50) NULL
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING OFF
+GO
