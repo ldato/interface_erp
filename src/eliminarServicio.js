@@ -4,7 +4,7 @@ var Service = require('node-windows').Service;
 var svc = new Service({
   name:'Node Servicio Prueba Interface',
   description: 'Servicio De Prueba Interface Sauken Softland',
-  script: 'app3.js'
+  script: 'index.js'
 });
 
 // Listen for the "install" event, which indicates the
