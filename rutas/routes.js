@@ -212,16 +212,21 @@ router.post("/registrofactura222", async (req, res) => {
         listaPrecio: "",
         estado: "N",
         circuitoDelQueParte: "",
+        observaciones: "",
+        email: "",
         items: [],
     };
 
     const registro = req.body;
     objEscribir.identificador = registro.identificador;
     objEscribir.cuit = registro.cuit;
+    objEscribir.observaciones = registro.observaciones;
+    objEscribir.email = registro.email;
     let items = registro.items;
     let circuitoParte = registro.circuitoParte;
     console.log(items);
     let itemsFaltantes = [];
+    let itemsEnCero = [];
 
     // let estado = "N";
     let mensajeError; //ver como realizar el tratamiento del error
@@ -242,34 +247,42 @@ router.post("/registrofactura222", async (req, res) => {
         objEscribir.listaPrecio = cliente.recordset[0].USR_VTMCLH_LISVIS;
         objEscribir.items = items;
 
-        request.input("listaPrecio", objEscribir.listaPrecio );
+        request.input("listaPrecio", objEscribir.listaPrecio);
         console.log("for de articulos");
         for (let i = 0; i < objEscribir.items.length; i++) {
             try {
-                // objEscribir.items[i].nroItem = i + 1;
-            console.log(i);
-            request.input("artCode" + i, objEscribir.items[i].artCode)
-            let responseArt = await request.query(`SELECT * FROM USR_STTPRI
+                objEscribir.items[i].nroItem = i + 1;
+                //console.log(i);
+                request.input("artCode" + i, objEscribir.items[i].artCode);
+                let responseArt = await request.query(
+                    `SELECT * FROM USR_STTPRI
             WHERE USR_STTPRI_TIPPRO = 'VISAC'
-            AND USR_STTPRI_CODLIS = `+ objEscribir.listaPrecio +`
-            AND USR_STTPRI_ARTCOD = `+ objEscribir.items[i].artCode + ";");
-            // let responseArt = await request.query(`SELECT * FROM USR_STTPRI
-            // WHERE USR_STTPRI_TIPPRO = 'VISAC'
-            // AND USR_STTPRI_CODLIS = @listaPrecio
-            // AND USR_STTPRI_ARTCOD = @artCode`+ i + `;`);
-            // let responseArt = query;
-            let articulo = await responseArt;
-            console.log("Lenght del Articulo");
-            console.log(articulo.recordset.length);
-            if (articulo.recordset.length<1) {
-                itemsFaltantes.push(objEscribir.items[i].artCode);
-                // console.log(articulo);
-            }
+            AND USR_STTPRI_CODLIS = ` +
+                        objEscribir.listaPrecio +
+                        `
+            AND USR_STTPRI_ARTCOD = ` +
+                        objEscribir.items[i].artCode +
+                        ";"
+                );
+                // let responseArt = await request.query(`SELECT * FROM USR_STTPRI
+                // WHERE USR_STTPRI_TIPPRO = 'VISAC'
+                // AND USR_STTPRI_CODLIS = @listaPrecio
+                // AND USR_STTPRI_ARTCOD = @artCode`+ i + `;`);
+                // let responseArt = query;
+                let articulo = await responseArt;
+                console.log("Lenght del Articulo");
+                console.log(articulo.recordset.length);
+                if (articulo.recordset.length < 1) {
+                    itemsFaltantes.push(objEscribir.items[i].artCode);
+                    // console.log(articulo);
+                }
+                if (objEscribir.items[i].cantidad === 0) {
+                    itemsEnCero.push(objEscribir.items[i].artCode);
+                }
             } catch (error) {
                 console.log(error);
             }
-            
-        }        
+        }
 
         objEscribir.circuitoDelQueParte = circuitoParte;
 
@@ -279,14 +292,91 @@ router.post("/registrofactura222", async (req, res) => {
         // res.send(objEscribir);
         console.log("Articulos Faltantes LENGHT");
         console.log(itemsFaltantes.length);
-        if (itemsFaltantes.length===0) {
-            res.send(objEscribir);
-        } else {            
+        if (itemsFaltantes.length === 0 && itemsEnCero.length === 0) {
+            //res.send(objEscribir);
+            request.input("identificador", objEscribir.identificador);
+            request.input("estado", "N");
+            request.input("nroCuenta", objEscribir.nroCliente);
+            request.input("circuitoOrigen", objEscribir.circuitoDelQueParte);
+            request.input("circuitoParte", objEscribir.circuitoDelQueParte);
+            request.input("listaPrecioInsert", objEscribir.listaPrecio);
+            request.input("periodoFact", 12345);
+            request.input("observaciones", objEscribir.observaciones);
+            request.input("EmpresaFC", "CAC01");
+
+            try {
+                let insertCabecera = await request.query(`INSERT INTO SAR_FCRMVH     
+                (SAR_FCRMVH_IDENTI, SAR_FCRMVH_STATUS,  SAR_FCRMVH_ERRMSG,
+                SAR_FCRMVH_NROCTA, SAR_FCRMVH_FCHMOV,  SAR_FCRMVH_CIRCOM,  
+                SAR_FCRMVH_CIRAPL,  SAR_FCRMVH_CODEMP,
+                SAR_FCRMVH_CODLIS,  USR_FCRMVH_PERFAC,  USR_FCRMVH_TEXTOS)
+                VALUES (@identificador, @estado, NULL, @nroCuenta, GETDATE(), @circuitoOrigen,
+                @circuitoParte, @EmpresaFC, @listaPrecioInsert, @periodoFact, @observaciones);`);
+                console.log("Resultado insert Cabecera");
+                console.log(insertCabecera);
+                //res.send(insertCabecera);
+                let consultaCabecera = await request.query(`SELECT * FROM SAR_FCRMVH 
+                WHERE SAR_FCRMVH_IDENTI = @identificador;`)
+                console.log("lenght del insertCabecera");
+                console.log(consultaCabecera.recordset.length);
+                // res.send(consultaCabecera);
+
+                if (consultaCabecera.recordset.length === 0) {
+                    res.send("Ocurrio un problema al insertar la cabecera");
+                } else {
+                    //res.send("La cabecera fue insertada correctamente");
+                    for (let i = 0; i < objEscribir.items.length; i++) {
+                        //SE MANDO MAIL A WILLIAM CON LOS ITEMS POR LA TABLA
+                        request.input("identificador" + i, objEscribir.identificador);
+                        request.input("nroItem" + i, objEscribir.items[i].nroItem);
+                        request.input("tipPro" + i, objEscribir.tipoProducto);
+                        request.input("producto" + i, objEscribir.items[i].artCode);
+                        request.input("cantidad" + i, objEscribir.items[i].cantidad);
+                        request.input("nroCert" + i, objEscribir.items[i].nrocertificado);
+                        request.input("observaciones" + i, objEscribir.observaciones);
+                        try {
+                            let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
+                            (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
+                            SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
+                            VALUES (@identificador`+`${i}, @nroItem`+`${i}, @tipPro`+`${i}, 
+                            @producto`+`${i}, @cantidad`+`${i}, NULL,  @nroCert`+`${i}, @observaciones`+`${i});`);
+                        //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
+                        // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
+                        // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
+                        // VALUES (@identificador` + i `, @nroItem` + i `, @tipPro` + i `, 
+                        // @producto` + i `, @cantidad` + i `,@nroCert` + i `, @observaciones` + i `);` );
+
+                        //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
+                        // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
+                        // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
+                        // VALUES (${objEscribir.identificador}, ${objEscribir.items[i].nroItem}, ${objEscribir.tipoProducto},
+                        //      ${objEscribir.items[i].artCode}, ${objEscribir.items[i].cantidad}, NULL, 
+                        //      ${objEscribir.items[i].nrocertificado}, ${objEscribir.observaciones} );`)
+                            console.log(insertItems);
+                        } catch (error) {
+                            console.log(error);
+                        }
+                                              
+                    }
+                }
+            } catch (error) {
+                console.log("error del insert Cabecera");
+                console.log(error);
+                res.send("Hubo un error al insertar la cabecera: " + error);
+            }
+        } else if (itemsFaltantes.length !== 0 && itemsEnCero.length !== 0) {
+            res.send(
+                "Items faltantes: " +
+                    itemsFaltantes +
+                    "\nItems en cero: " +
+                    itemsEnCero
+            );
+        } else if (itemsFaltantes.length !== 0 && itemsEnCero.length === 0) {
             res.send("Items faltantes: " + itemsFaltantes);
+        } else if (itemsFaltantes.length === 0 && itemsEnCero.length !== 0) {
+            res.send(" Items en cero: " + itemsEnCero);
         }
     }
-
-    
 });
 
 router.get("/conexionBasedatos", async (req, res) => {
