@@ -65,9 +65,39 @@ router.post("/register", async (req, res) => {
 
 //-------------------ENDPOINT DE PRUEBA TOKEN-------------------------------------
 
-router.get("/consultaestado/:id", async (req, res) => {
-    const identificador = req.params.id;//Si es para un solo id viene por URL
+router.post("/consultaestado", async (req, res) => {
     const identificadores = req.body;
+    let arrayResponse = [];
+   
+    const conn = await sql.connect(dbConfig);
+    const request = new sql.Request(conn);
+    for (let i = 0; i < identificadores.length; i++) {
+         request.input("identificador" + i, identificadores[i]);
+         let estadoId = await request.query(`SELECT 
+         CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
+         , SAR_FCRMVH_ERRMSG [MENSAJE]
+         , ISNULL(FCRMVH_MODFOR,'') [MODULO]
+         , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
+         , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
+     FROM SAR_FCRMVH 
+         LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
+                         AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
+     WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
+     /* AND SAR_FCRMVH_STATUS='E' */
+     `) 
+      
+        const objItems = {
+            idOperacion: identificadores[i],
+            estado: estadoId.recordset[0].ESTADO === "" ? null : estadoId.recordset[0].ESTADO,
+            mensaje: estadoId.recordset[0].MENSAJE === "" ? null : estadoId.recordset[0].MENSAJE,
+            modulo: estadoId.recordset[0].MODULO === "" ? null : estadoId.recordset[0].MODULO,
+            codigo: estadoId.recordset[0].CODIGO === "" ? null : estadoId.recordset[0].CODIGO,
+            numero: estadoId.recordset[0].NUMERO === "" ? null : estadoId.recordset[0].NUMERO
+        }
+        arrayResponse.push(objItems);
+    }
+    console.log(arrayResponse);
+    res.status(200).json(arrayResponse);
      
 })
 
@@ -131,80 +161,7 @@ router.post("/pruebaendpoint", async (req, res) => {
 //-------------------FIN ENDPOINT DE PRUEBA TOKEN-------------------------------------
 
 // router.post("/registrofactura", async (req, res) => {
-//     const token = req.headers["x-access-token"];
-//     let items = [];
-//     if (!token) {
-//         res.status(401).send({
-//             message: "Es necesario enviar token de autenticación",
-//         });
-//         return;
-//     } else {
-//         JWT.verify(token, secret, async (error, user) => {
-//             if (error) {
-//                 return res.json({ message: "Token invalido" });
-//             } else {
-//                 const registro = req.body;
-//                 let identificador = registro.identificador;
-//                 let tipoCliente = registro.tipoCLiente;
-//                 //let codArt = registro.codArt;
-//                 let itemsBody = registro.items;
-//                 // for (let i = 0; i < itemsBody.length; i++) {
-//                 //   let item = {
-//                 //     codArt: itemsBody[i].codArt,
-//                 //     cantidad: itemsBody[i].cantidad,
-//                 //     precioUnit: itemsBody[i].precioUnit,
-//                 //     totalItem: cantidad * precioUnit
-//                 //   };
-//                 // }
-//                 let estado = "N";
-//                 let mensajeError; //ver como realizar el tratamiento del error
-//                 let cuit = registro.cuit;
-//                 // la variable fecha se insertara desde la query en SQL
-//                 let circuitoAGenerarBody = registro.circuitoAGenerar;
-//                 let circuitoAGenerar;
-//                 if (circuitoAGenerarBody === "S") {
-//                     circuitoAGenerar = 0300;
-//                 } else {
-//                     circuitoAGenerar = 0400;
-//                 }
-//                 let circuitoDelQueParte = circuitoAGenerar;
-//                 let empresaFC = "CAC01";
-//                 //let listaPrecios;
-//                 let periodoFacturacion;
-//                 let texto = registro.texto;
-//                 let nroCliente;
-//                 try {
-//                     const conn = await sql.connect(dbConfig);
-//                     const request = new sql.Request(conn);
-//                     request.input("cuit", cuit);
-//                     request.input("tipoCliente", tipoCliente);
-//                     request.input("codArt", codArt);
-//                     const responseCliente = await fetch(`Select * from 
-//           vtmclh where vtmclh_nrodoc = @cuit;`);
 
-//                     cliente = await responseCliente.json();
-//                     console.log(cliente);
-//                     //request.input("nroLista",)
-//                     const listaPrecios =
-//                         await request.query(`SELECT * FROM USR_STTPRI
-//           WHERE USR_STTPRI_TIPPRO = 'VISAC'
-//           AND USR_STTPRI_CODLIS = '0118';`);
-//                     //   const responseCliente = await fetch(
-//                     //     "Select * from vtmclh where vtmclh_nrodoc = @cuit;"
-//                     //   );
-//                     const cliente = await responseCliente.json();
-//                     listaPrecios = await fetch(`SELECT *
-//                     FROM USR_STTPRI
-//                     WHERE USR_STTPRI_TIPPRO = 'VISAC'
-//                     AND USR_STTPRI_CODLIS = @tipoCliente;                    
-//                     AND (USR_STTPRI_ARTCOD = @codArt);`);
-//                     const clienteTipo = await listaPrecios.json();
-//                     nroCliente = await cliente.numero; //VER NOMBRE DEL CAMPO EN EL QUE VIENE EL NUMERO DE CLIENTE DE SOFTLAND
-//                     console.log(items);
-//                 } catch (error) {}
-//             }
-//         });
-//     }
 // });
 
 router.post("/registrofactura222", async (req, res) => {
@@ -248,7 +205,12 @@ router.post("/registrofactura222", async (req, res) => {
     console.log("Cliente Vacio");
     console.log(cliente.recordset.length);
     if (cliente.recordset.length < 1) {
-        res.send("No existe un cliente asociado con el cuit: " + registro.cuit);
+        // res.send("No existe un cliente asociado con el cuit: " + registro.cuit);
+        res.status(400).json({
+            "tipo": "error",
+            "mensaje": "No existe un cliente asociado con el cuit: " + registro.cuit,
+            "itemsInsertados": 0
+        })
     } else {
         objEscribir.nroCliente = cliente.recordset[0].VTMCLH_NROCTA;
         objEscribir.listaPrecio = cliente.recordset[0].USR_VTMCLH_LISVIS;
@@ -337,7 +299,7 @@ router.post("/registrofactura222", async (req, res) => {
                         request.input("identificador" + i, objEscribir.identificador);
                         request.input("nroItem" + i, objEscribir.items[i].nroItem);
                         request.input("tipPro" + i, objEscribir.tipoProducto);
-                        request.input("producto" + i, objEscribir.items[i].artCode);
+                        request.input("producto" + i, (objEscribir.items[i].artCode).toString());
                         request.input("cantidad" + i, objEscribir.items[i].cantidad);
                         request.input("nroCert" + i, objEscribir.items[i].nrocertificado);
                         request.input("observaciones" + i, objEscribir.observaciones);
@@ -365,11 +327,16 @@ router.post("/registrofactura222", async (req, res) => {
                         console.log("Length del insert de items: " + insertItems.rowsAffected.length);
                         if (insertItems.rowsAffected.length === 3) {
                             res.status(200).json({
+                                tipo: "ok",
                                 mensaje: "Insercion Satisfactoria",
                                 itemsInsertados: objEscribir.items.length
                             });
                         } else {
-                            res.status(500).json({message: "Ocurrio un error al insertar los items"});
+                            res.status(500).json({
+                                tipo: "error",
+                                message: "Ocurrio un error al insertar los items",
+                                itemsInsertados: 0
+                            });
                         }    
                         //console.log(insertItems.length);
                         } catch (error) {
@@ -379,21 +346,40 @@ router.post("/registrofactura222", async (req, res) => {
                     }
                 }
             } catch (error) {
-                console.log("error del insert Cabecera");
-                console.log(error);
-                res.send("Hubo un error al insertar la cabecera: " + error);
+                // console.log("error del insert Cabecera");
+                // console.log(error);
+                res.status(500).json({
+                    tipo: "error",
+                    message: "Hubo un error al insertar la cabecera: " + error,
+                    itemsInsertados: 0
+                });
             }
         } else if (itemsFaltantes.length !== 0 && itemsEnCero.length !== 0) {
-            res.send(
-                "Items faltantes: " +
-                    itemsFaltantes +
-                    "\nItems en cero: " +
-                    itemsEnCero
-            );
+            res.status(500).json({
+                tipo: "error",
+                message: "Items faltantes: " + itemsFaltantes + ", Items En Cero: " + itemsEnCero,
+                itemsInsertados: 0
+            })
+            // res.send(
+            //     "Items faltantes: " +
+            //         itemsFaltantes +
+            //         "\nItems en cero: " +
+            //         itemsEnCero
+            // );
         } else if (itemsFaltantes.length !== 0 && itemsEnCero.length === 0) {
-            res.send("Items faltantes: " + itemsFaltantes);
+            res.status(500).json({
+                tipo: "error",
+                message: "Items faltantes: " + itemsFaltantes,
+                itemsInsertados: 0
+            })
+            // res.send("Items faltantes: " + itemsFaltantes);
         } else if (itemsFaltantes.length === 0 && itemsEnCero.length !== 0) {
-            res.send(" Items en cero: " + itemsEnCero);
+            res.status(500).json({
+                tipo: "error",
+                message: "Items En Cero: " + itemsEnCero,
+                itemsInsertados: 0
+            })
+            // res.send(" Items en cero: " + itemsEnCero);
         }
     }
 });
