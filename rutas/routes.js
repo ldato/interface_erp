@@ -66,38 +66,46 @@ router.post("/register", async (req, res) => {
 //-------------------ENDPOINT DE PRUEBA TOKEN-------------------------------------
 
 router.post("/consultaestado", async (req, res) => {
-    const identificadores = req.body;
+    const identificadores = req.body.identificadores;
     let arrayResponse = [];
    
-    const conn = await sql.connect(dbConfig);
-    const request = new sql.Request(conn);
-    for (let i = 0; i < identificadores.length; i++) {
-         request.input("identificador" + i, identificadores[i]);
-         let estadoId = await request.query(`SELECT 
-         CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
-         , SAR_FCRMVH_ERRMSG [MENSAJE]
-         , ISNULL(FCRMVH_MODFOR,'') [MODULO]
-         , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
-         , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
-     FROM SAR_FCRMVH 
-         LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
-                         AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
-     WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
-     /* AND SAR_FCRMVH_STATUS='E' */
-     `) 
-      
-        const objItems = {
-            idOperacion: identificadores[i],
-            estado: estadoId.recordset[0].ESTADO === "" ? null : estadoId.recordset[0].ESTADO,
-            mensaje: estadoId.recordset[0].MENSAJE === "" ? null : estadoId.recordset[0].MENSAJE,
-            modulo: estadoId.recordset[0].MODULO === "" ? null : estadoId.recordset[0].MODULO,
-            codigo: estadoId.recordset[0].CODIGO === "" ? null : estadoId.recordset[0].CODIGO,
-            numero: estadoId.recordset[0].NUMERO === "" ? null : estadoId.recordset[0].NUMERO
+    try {
+        const conn = await sql.connect(dbConfig);
+        const request = new sql.Request(conn);
+        for (let i = 0; i < identificadores.length; i++) {
+             request.input("identificador" + i, identificadores[i]);
+             let estadoId = await request.query(`SELECT 
+             CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
+             , SAR_FCRMVH_ERRMSG [MENSAJE]
+             , ISNULL(FCRMVH_MODFOR,'') [MODULO]
+             , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
+             , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
+         FROM SAR_FCRMVH 
+             LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
+                             AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
+         WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
+         /* AND SAR_FCRMVH_STATUS='E' */
+         `) 
+            console.log(estadoId);
+            const objItems = {
+                idOperacion: identificadores[i],
+                estado: estadoId.recordset[0].ESTADO === "" || estadoId.recordset[0].ESTADO === undefined ? null : estadoId.recordset[0].ESTADO,
+                mensaje: estadoId.recordset[0].MENSAJE === "" || estadoId.recordset[0].MENSAJE ===undefined ? null : estadoId.recordset[0].MENSAJE,
+                modulo: estadoId.recordset[0].MODULO === "" || estadoId.recordset[0].MODULO ===undefined ? null : estadoId.recordset[0].MODULO,
+                codigo: estadoId.recordset[0].CODIGO === "" || estadoId.recordset[0].CODIGO ===undefined ? null : estadoId.recordset[0].CODIGO,
+                numero: estadoId.recordset[0].NUMERO === "" || estadoId.recordset[0].NUMERO ===undefined ? null : estadoId.recordset[0].NUMERO
+            }
+            arrayResponse.push(objItems);
         }
-        arrayResponse.push(objItems);
+        console.log(arrayResponse);
+        return res.status(200).json(arrayResponse);
+    } catch (error) {
+        return res.json({
+            tipo: "error",
+            message: "Ocurrio un error"
+        })
     }
-    console.log(arrayResponse);
-    res.status(200).json(arrayResponse);
+   
      
 })
 
@@ -206,7 +214,7 @@ router.post("/registrofactura222", async (req, res) => {
     console.log(cliente.recordset.length);
     if (cliente.recordset.length < 1) {
         // res.send("No existe un cliente asociado con el cuit: " + registro.cuit);
-        res.status(400).json({
+        return res.status(400).json({
             "tipo": "error",
             "mensaje": "No existe un cliente asociado con el cuit: " + registro.cuit,
             "itemsInsertados": 0
@@ -291,7 +299,7 @@ router.post("/registrofactura222", async (req, res) => {
                 // res.send(consultaCabecera);
 
                 if (consultaCabecera.recordset.length === 0) {
-                    res.send("Ocurrio un problema al insertar la cabecera");
+                    return res.send("Ocurrio un problema al insertar la cabecera");
                 } else {
                     //res.send("La cabecera fue insertada correctamente");
                     for (let i = 0; i < objEscribir.items.length; i++) {
@@ -326,13 +334,13 @@ router.post("/registrofactura222", async (req, res) => {
                         console.log("Length de items en Body: " + objEscribir.items.length);
                         console.log("Length del insert de items: " + insertItems.rowsAffected.length);
                         if (insertItems.rowsAffected.length === 3) {
-                            res.status(200).json({
+                            return res.status(200).json({
                                 tipo: "ok",
                                 mensaje: "Insercion Satisfactoria",
                                 itemsInsertados: objEscribir.items.length
                             });
                         } else {
-                            res.status(500).json({
+                            return res.status(500).json({
                                 tipo: "error",
                                 message: "Ocurrio un error al insertar los items",
                                 itemsInsertados: 0
@@ -348,14 +356,14 @@ router.post("/registrofactura222", async (req, res) => {
             } catch (error) {
                 // console.log("error del insert Cabecera");
                 // console.log(error);
-                res.status(500).json({
+                return res.status(500).json({
                     tipo: "error",
                     message: "Hubo un error al insertar la cabecera: " + error,
                     itemsInsertados: 0
                 });
             }
         } else if (itemsFaltantes.length !== 0 && itemsEnCero.length !== 0) {
-            res.status(500).json({
+            return res.status(500).json({
                 tipo: "error",
                 message: "Items faltantes: " + itemsFaltantes + ", Items En Cero: " + itemsEnCero,
                 itemsInsertados: 0
@@ -367,14 +375,14 @@ router.post("/registrofactura222", async (req, res) => {
             //         itemsEnCero
             // );
         } else if (itemsFaltantes.length !== 0 && itemsEnCero.length === 0) {
-            res.status(500).json({
+            return res.status(500).json({
                 tipo: "error",
                 message: "Items faltantes: " + itemsFaltantes,
                 itemsInsertados: 0
             })
             // res.send("Items faltantes: " + itemsFaltantes);
         } else if (itemsFaltantes.length === 0 && itemsEnCero.length !== 0) {
-            res.status(500).json({
+            return res.status(500).json({
                 tipo: "error",
                 message: "Items En Cero: " + itemsEnCero,
                 itemsInsertados: 0
