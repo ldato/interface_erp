@@ -334,7 +334,7 @@ router.post("/registrofactura222", async (req, res) => {
                         console.log("Length de items en Body: " + objEscribir.items.length);
                         console.log("Length del insert de items: " + insertItems.rowsAffected.length);
                         if (insertItems.rowsAffected.length === 3) {
-                            return res.status(200).json({
+                            res.status(200).json({
                                 tipo: "ok",
                                 mensaje: "Insercion Satisfactoria",
                                 itemsInsertados: objEscribir.items.length
