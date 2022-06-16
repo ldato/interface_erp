@@ -195,7 +195,7 @@ router.post("/registrofactura222", async (req, res) => {
     objEscribir.observaciones = registro.observaciones;
     objEscribir.email = registro.email;
     let items = registro.items;
-    let circuitoParte = registro.circuitoParte;
+    // let circuitoParte = "";
     console.log(items);
     let itemsFaltantes = [];
     let itemsEnCero = [];
@@ -210,6 +210,8 @@ router.post("/registrofactura222", async (req, res) => {
             vtmclh where vtmclh_nrodoc = @cuit;`);
 
     const cliente = await responseCliente;
+    console.log(cliente);
+    console.log("Circuito: " + cliente.recordset[0].USR_VTMCLH_CIRFAC);
     console.log("Cliente Vacio");
     console.log(cliente.recordset.length);
     if (cliente.recordset.length < 1) {
@@ -222,7 +224,28 @@ router.post("/registrofactura222", async (req, res) => {
     } else {
         objEscribir.nroCliente = cliente.recordset[0].VTMCLH_NROCTA;
         objEscribir.listaPrecio = cliente.recordset[0].USR_VTMCLH_LISVIS;
+        // objEscribir.circuitoDelQueParte = "0400";
         objEscribir.items = items;
+
+        if (cliente.recordset[0].USR_VTMCLH_CIRFAC === "1") {
+            objEscribir.circuitoDelQueParte = "0300";
+        } else if (cliente.recordset[0].USR_VTMCLH_CIRFAC === "2") {
+            objEscribir.circuitoDelQueParte = "0400";
+        } else {
+            return res.status(500).json({
+                "tipo": "error",
+                "mensaje": "Ocurrio un error con el circuito de facturación",
+                "itemsInsertados": 0
+            })
+        }
+
+        if (objEscribir.listaPrecio === "" || objEscribir.listaPrecio === null) {
+            return res.status(400).json({
+                "tipo": "error",
+                "mensaje": "El cliente no tiene una lista de precios asociada",
+                "itemsInsertados": 0
+            })
+        }
 
         request.input("listaPrecio", objEscribir.listaPrecio);
         console.log("for de articulos");
@@ -261,7 +284,7 @@ router.post("/registrofactura222", async (req, res) => {
             }
         }
 
-        objEscribir.circuitoDelQueParte = circuitoParte;
+        //objEscribir.circuitoDelQueParte = circuitoParte;
 
         //request.input("listaP", objEscribir.listaPrecio);
         console.log("objEscribir");
