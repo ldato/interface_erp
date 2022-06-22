@@ -201,7 +201,7 @@ router.post("/registrofactura222", async (req, res) => {
     let itemsEnCero = [];
 
     // let estado = "N";
-    let mensajeError; //ver como realizar el tratamiento del error
+    //let mensajeError; //ver como realizar el tratamiento del error
 
     const conn = await sql.connect(dbConfig);
     const request = new sql.Request(conn);
@@ -210,11 +210,14 @@ router.post("/registrofactura222", async (req, res) => {
             vtmclh where vtmclh_nrodoc = @cuit;`);
 
     const cliente = await responseCliente;
-    console.log(cliente);
-    console.log("Circuito: " + cliente.recordset[0].USR_VTMCLH_CIRFAC);
+    console.log("cliente:");
+    console.log(responseCliente);
+    //console.log("Circuito: " + cliente.recordset[0].USR_VTMCLH_CIRFAC);
     console.log("Cliente Vacio");
-    console.log(cliente.recordset.length);
-    if (cliente.recordset.length < 1) {
+    console.log(responseCliente.recordset.length);
+    console.log("responseCliente");
+    console.log(responseCliente.recordset[0]);
+    if (responseCliente.recordset[0]===undefined) {
         // res.send("No existe un cliente asociado con el cuit: " + registro.cuit);
         return res.status(400).json({
             "tipo": "error",
