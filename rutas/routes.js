@@ -86,16 +86,26 @@ router.post("/consultaestado", async (req, res) => {
          WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
          /* AND SAR_FCRMVH_STATUS='E' */
          `) 
-            console.log(estadoId);
+            console.log('estadoId');
+            console.log(estadoId.rowsAffected[0]);
             const objItems = {
+                // idOperacion: identificadores[i],
+                // estado: estadoId.recordset[0].ESTADO === "" || estadoId.recordset[0].ESTADO === undefined ? null : estadoId.recordset[0].ESTADO,
+                // mensaje: estadoId.recordset[0].MENSAJE === "" || estadoId.recordset[0].MENSAJE ===undefined ? null : estadoId.recordset[0].MENSAJE,
+                // modulo: estadoId.recordset[0].MODULO === "" || estadoId.recordset[0].MODULO ===undefined ? null : estadoId.recordset[0].MODULO,
+                // codigo: estadoId.recordset[0].CODIGO === "" || estadoId.recordset[0].CODIGO ===undefined ? null : estadoId.recordset[0].CODIGO,
+                // numero: estadoId.recordset[0].NUMERO === "" || estadoId.recordset[0].NUMERO ===undefined ? null : estadoId.recordset[0].NUMERO
                 idOperacion: identificadores[i],
-                estado: estadoId.recordset[0].ESTADO === "" || estadoId.recordset[0].ESTADO === undefined ? null : estadoId.recordset[0].ESTADO,
-                mensaje: estadoId.recordset[0].MENSAJE === "" || estadoId.recordset[0].MENSAJE ===undefined ? null : estadoId.recordset[0].MENSAJE,
-                modulo: estadoId.recordset[0].MODULO === "" || estadoId.recordset[0].MODULO ===undefined ? null : estadoId.recordset[0].MODULO,
-                codigo: estadoId.recordset[0].CODIGO === "" || estadoId.recordset[0].CODIGO ===undefined ? null : estadoId.recordset[0].CODIGO,
-                numero: estadoId.recordset[0].NUMERO === "" || estadoId.recordset[0].NUMERO ===undefined ? null : estadoId.recordset[0].NUMERO
+                estado: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].ESTADO,
+                mensaje: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].MENSAJE,
+                modulo: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].MODULO,
+                codigo: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].CODIGO,
+                numero: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].NUMERO
             }
             arrayResponse.push(objItems);
+            // console.log("consulta: " + i);
+            // console.log(objItems);
+            
         }
         console.log(arrayResponse);
         return res.status(200).json(arrayResponse);
