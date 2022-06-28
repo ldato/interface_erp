@@ -259,6 +259,13 @@ router.post("/registrofactura222", async (req, res) => {
                 "itemsInsertados": 0
             })
         }
+        if (objEscribir.items.length === 0) {
+            return res.status(400).json({
+                "tipo": "error",
+                "mensaje": "Debe cargar al menos un item",
+                "itemsInsertados": 0
+            })
+        }
 
         request.input("listaPrecio", objEscribir.listaPrecio);
         console.log("for de articulos");
