@@ -68,57 +68,49 @@ router.post("/register", async (req, res) => {
 router.post("/consultaestado", async (req, res) => {
     const identificadores = req.body.identificadores;
     let arrayResponse = [];
-   
+
     try {
         const conn = await sql.connect(dbConfig);
         const request = new sql.Request(conn);
         for (let i = 0; i < identificadores.length; i++) {
-             request.input("identificador" + i, identificadores[i]);
-             let estadoId = await request.query(`SELECT 
-             CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
-             , SAR_FCRMVH_ERRMSG [MENSAJE]
-             , ISNULL(FCRMVH_MODFOR,'') [MODULO]
-             , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
-             , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
-         FROM SAR_FCRMVH 
-             LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
-                             AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
-         WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
-         /* AND SAR_FCRMVH_STATUS='E' */
-         `) 
-            console.log('estadoId');
-            console.log(estadoId.rowsAffected[0]);
+            request.input("identificador" + i, identificadores[i]);          
+            let estadoId = await request.query(
+                `SELECT
+                 CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
+                 , SAR_FCRMVH_ERRMSG [MENSAJE]
+                 , ISNULL(FCRMVH_MODFOR,'') [MODULO]
+                 , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
+                 , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
+             FROM SAR_FCRMVH
+                 LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
+                                 AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
+             WHERE SAR_FCRMVH_IDENTI = @identificador` +
+                    `${i}
+             /* AND SAR_FCRMVH_STATUS='E' */`);
+
+            console.log("estadoId");
+            console.log(estadoId);
             const objItems = {
-                // idOperacion: identificadores[i],
-                // estado: estadoId.recordset[0].ESTADO === "" || estadoId.recordset[0].ESTADO === undefined ? null : estadoId.recordset[0].ESTADO,
-                // mensaje: estadoId.recordset[0].MENSAJE === "" || estadoId.recordset[0].MENSAJE ===undefined ? null : estadoId.recordset[0].MENSAJE,
-                // modulo: estadoId.recordset[0].MODULO === "" || estadoId.recordset[0].MODULO ===undefined ? null : estadoId.recordset[0].MODULO,
-                // codigo: estadoId.recordset[0].CODIGO === "" || estadoId.recordset[0].CODIGO ===undefined ? null : estadoId.recordset[0].CODIGO,
-                // numero: estadoId.recordset[0].NUMERO === "" || estadoId.recordset[0].NUMERO ===undefined ? null : estadoId.recordset[0].NUMERO
                 idOperacion: identificadores[i],
                 estado: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].ESTADO,
                 mensaje: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].MENSAJE,
                 modulo: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].MODULO,
                 codigo: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].CODIGO,
                 numero: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].NUMERO
-            }
+            };
             arrayResponse.push(objItems);
             // console.log("consulta: " + i);
             // console.log(objItems);
-            
         }
         console.log(arrayResponse);
         return res.status(200).json(arrayResponse);
     } catch (error) {
         return res.json({
             tipo: "error",
-            message: "Ocurrio un error"
-        })
+            message: "Ocurrio un error",
+        });
     }
-   
-     
-})
-
+});
 
 router.post("/pruebaendpoint", async (req, res) => {
     // var token = req.headers['authorization'];
@@ -227,13 +219,14 @@ router.post("/registrofactura222", async (req, res) => {
     console.log(responseCliente.recordset.length);
     console.log("responseCliente");
     console.log(responseCliente.recordset[0]);
-    if (responseCliente.recordset[0]===undefined) {
+    if (responseCliente.recordset[0] === undefined) {
         // res.send("No existe un cliente asociado con el cuit: " + registro.cuit);
         return res.status(400).json({
-            "tipo": "error",
-            "mensaje": "No existe un cliente asociado con el cuit: " + registro.cuit,
-            "itemsInsertados": 0
-        })
+            tipo: "error",
+            mensaje:
+                "No existe un cliente asociado con el cuit: " + registro.cuit,
+            itemsInsertados: 0,
+        });
     } else {
         objEscribir.nroCliente = cliente.recordset[0].VTMCLH_NROCTA;
         objEscribir.listaPrecio = cliente.recordset[0].USR_VTMCLH_LISVIS;
@@ -246,25 +239,28 @@ router.post("/registrofactura222", async (req, res) => {
             objEscribir.circuitoDelQueParte = "0400";
         } else {
             return res.status(500).json({
-                "tipo": "error",
-                "mensaje": "Ocurrio un error con el circuito de facturación",
-                "itemsInsertados": 0
-            })
+                tipo: "error",
+                mensaje: "Ocurrio un error con el circuito de facturación",
+                itemsInsertados: 0,
+            });
         }
 
-        if (objEscribir.listaPrecio === "" || objEscribir.listaPrecio === null) {
+        if (
+            objEscribir.listaPrecio === "" ||
+            objEscribir.listaPrecio === null
+        ) {
             return res.status(400).json({
-                "tipo": "error",
-                "mensaje": "El cliente no tiene una lista de precios asociada",
-                "itemsInsertados": 0
-            })
+                tipo: "error",
+                mensaje: "El cliente no tiene una lista de precios asociada",
+                itemsInsertados: 0,
+            });
         }
         if (objEscribir.items.length === 0) {
             return res.status(400).json({
-                "tipo": "error",
-                "mensaje": "Debe cargar al menos un item",
-                "itemsInsertados": 0
-            })
+                tipo: "error",
+                mensaje: "Debe cargar al menos un item",
+                itemsInsertados: 0,
+            });
         }
 
         request.input("listaPrecio", objEscribir.listaPrecio);
@@ -301,6 +297,11 @@ router.post("/registrofactura222", async (req, res) => {
                 }
             } catch (error) {
                 console.log(error);
+                return res.status(400).json({
+                    tipo: "error",
+                    message: error,
+                    itemsInsertados: 0,
+                });
             }
         }
 
@@ -322,78 +323,121 @@ router.post("/registrofactura222", async (req, res) => {
             request.input("listaPrecioInsert", objEscribir.listaPrecio);
             request.input("periodoFact", 12345);
             request.input("observaciones", objEscribir.observaciones);
+            request.input("email", objEscribir.email);
             request.input("EmpresaFC", "CAC01");
 
             try {
-                let insertCabecera = await request.query(`INSERT INTO SAR_FCRMVH     
+                let insertCabecera =
+                    await request.query(`INSERT INTO SAR_FCRMVH     
                 (SAR_FCRMVH_IDENTI, SAR_FCRMVH_STATUS,  SAR_FCRMVH_ERRMSG,
                 SAR_FCRMVH_NROCTA, SAR_FCRMVH_FCHMOV,  SAR_FCRMVH_CIRCOM,  
                 SAR_FCRMVH_CIRAPL,  SAR_FCRMVH_CODEMP,
-                SAR_FCRMVH_CODLIS,  USR_FCRMVH_PERFAC,  USR_FCRMVH_TEXTOS)
+                SAR_FCRMVH_CODLIS,  USR_FCRMVH_PERFAC,  USR_FCRMVH_TEXTOS, USR_FCRMVH_DIREML)
                 VALUES (@identificador, @estado, NULL, @nroCuenta, GETDATE(), @circuitoOrigen,
-                @circuitoParte, @EmpresaFC, @listaPrecioInsert, @periodoFact, @observaciones);`);
+                @circuitoParte, @EmpresaFC, @listaPrecioInsert, @periodoFact, @observaciones, @email);`);
                 console.log("Resultado insert Cabecera");
                 console.log(insertCabecera);
                 //res.send(insertCabecera);
-                let consultaCabecera = await request.query(`SELECT * FROM SAR_FCRMVH 
-                WHERE SAR_FCRMVH_IDENTI = @identificador;`)
+                let consultaCabecera =
+                    await request.query(`SELECT * FROM SAR_FCRMVH 
+                WHERE SAR_FCRMVH_IDENTI = @identificador;`);
                 console.log("lenght del insertCabecera");
                 console.log(consultaCabecera.recordset.length);
                 // res.send(consultaCabecera);
 
                 if (consultaCabecera.recordset.length === 0) {
-                    return res.send("Ocurrio un problema al insertar la cabecera");
+                    return res.send(
+                        "Ocurrio un problema al insertar la cabecera"
+                    );
                 } else {
                     //res.send("La cabecera fue insertada correctamente");
                     for (let i = 0; i < objEscribir.items.length; i++) {
                         //SE MANDO MAIL A WILLIAM CON LOS ITEMS POR LA TABLA
-                        request.input("identificador" + i, objEscribir.identificador);
-                        request.input("nroItem" + i, objEscribir.items[i].nroItem);
+                        request.input(
+                            "identificador" + i,
+                            objEscribir.identificador
+                        );
+                        request.input(
+                            "nroItem" + i,
+                            objEscribir.items[i].nroItem
+                        );
                         request.input("tipPro" + i, objEscribir.tipoProducto);
-                        request.input("producto" + i, (objEscribir.items[i].artCode).toString());
-                        request.input("cantidad" + i, objEscribir.items[i].cantidad);
-                        request.input("nroCert" + i, objEscribir.items[i].nrocertificado);
-                        request.input("observaciones" + i, objEscribir.observaciones);
+                        request.input(
+                            "producto" + i,
+                            objEscribir.items[i].artCode.toString()
+                        );
+                        request.input(
+                            "cantidad" + i,
+                            objEscribir.items[i].cantidad
+                        );
+                        request.input(
+                            "nroCert" + i,
+                            objEscribir.items[i].nrocertificado
+                        );
+                        request.input(
+                            "observaciones" + i,
+                            objEscribir.observaciones
+                        );
                         try {
-                            let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
+                            let insertItems = await request.query(
+                                `INSERT INTO SAR_FCRMVI
                             (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
                             SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
-                            VALUES (@identificador`+`${i}, @nroItem`+`${i}, @tipPro`+`${i}, 
-                            @producto`+`${i}, @cantidad`+`${i}, NULL,  @nroCert`+`${i}, @observaciones`+`${i});`);
-                        //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
-                        // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
-                        // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
-                        // VALUES (@identificador` + i `, @nroItem` + i `, @tipPro` + i `, 
-                        // @producto` + i `, @cantidad` + i `,@nroCert` + i `, @observaciones` + i `);` );
+                            VALUES (@identificador` +
+                                    `${i}, @nroItem` +
+                                    `${i}, @tipPro` +
+                                    `${i}, 
+                            @producto` +
+                                    `${i}, @cantidad` +
+                                    `${i}, NULL,  @nroCert` +
+                                    `${i}, @observaciones` +
+                                    `${i});`
+                            );
+                            //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
+                            // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
+                            // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
+                            // VALUES (@identificador` + i `, @nroItem` + i `, @tipPro` + i `,
+                            // @producto` + i `, @cantidad` + i `,@nroCert` + i `, @observaciones` + i `);` );
 
-                        //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
-                        // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
-                        // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
-                        // VALUES (${objEscribir.identificador}, ${objEscribir.items[i].nroItem}, ${objEscribir.tipoProducto},
-                        //      ${objEscribir.items[i].artCode}, ${objEscribir.items[i].cantidad}, NULL, 
-                        //      ${objEscribir.items[i].nrocertificado}, ${objEscribir.observaciones} );`)
-                        console.log("Objeto insert items");
-                        console.log(insertItems);
-                        console.log("Length de items en Body: " + objEscribir.items.length);
-                        console.log("Length del insert de items: " + insertItems.rowsAffected.length);
-                        if (insertItems.rowsAffected.length === 3) {
-                            res.status(200).json({
-                                tipo: "ok",
-                                mensaje: "Insercion Satisfactoria",
-                                itemsInsertados: objEscribir.items.length
-                            });
-                        } else {
-                            return res.status(500).json({
-                                tipo: "error",
-                                message: "Ocurrio un error al insertar los items",
-                                itemsInsertados: 0
-                            });
-                        }    
-                        //console.log(insertItems.length);
+                            //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
+                            // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
+                            // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
+                            // VALUES (${objEscribir.identificador}, ${objEscribir.items[i].nroItem}, ${objEscribir.tipoProducto},
+                            //      ${objEscribir.items[i].artCode}, ${objEscribir.items[i].cantidad}, NULL,
+                            //      ${objEscribir.items[i].nrocertificado}, ${objEscribir.observaciones} );`)
+                            console.log("Objeto insert items");
+                            console.log(insertItems);
+                            console.log(
+                                "Length de items en Body: " +
+                                    objEscribir.items.length
+                            );
+                            console.log(
+                                "Length del insert de items: " +
+                                    insertItems.rowsAffected.length
+                            );
+                            if (insertItems.rowsAffected.length === 3) {
+                                res.status(200).json({
+                                    tipo: "ok",
+                                    mensaje: "Insercion Satisfactoria",
+                                    itemsInsertados: objEscribir.items.length,
+                                });
+                            } else {
+                                return res.status(500).json({
+                                    tipo: "error",
+                                    message:
+                                        "Ocurrio un error al insertar los items",
+                                    itemsInsertados: 0,
+                                });
+                            }
+                            //console.log(insertItems.length);
                         } catch (error) {
                             console.log(error);
+                            return res.status(400).json({
+                                tipo: "error",
+                                message: error,
+                                itemsInsertados: 0,
+                            });
                         }
-                                              
                     }
                 }
             } catch (error) {
@@ -402,15 +446,19 @@ router.post("/registrofactura222", async (req, res) => {
                 return res.status(500).json({
                     tipo: "error",
                     message: "Hubo un error al insertar la cabecera: " + error,
-                    itemsInsertados: 0
+                    itemsInsertados: 0,
                 });
             }
         } else if (itemsFaltantes.length !== 0 && itemsEnCero.length !== 0) {
             return res.status(500).json({
                 tipo: "error",
-                message: "Items faltantes: " + itemsFaltantes + ", Items En Cero: " + itemsEnCero,
-                itemsInsertados: 0
-            })
+                message:
+                    "Items faltantes: " +
+                    itemsFaltantes +
+                    ", Items En Cero: " +
+                    itemsEnCero,
+                itemsInsertados: 0,
+            });
             // res.send(
             //     "Items faltantes: " +
             //         itemsFaltantes +
@@ -421,15 +469,15 @@ router.post("/registrofactura222", async (req, res) => {
             return res.status(500).json({
                 tipo: "error",
                 message: "Items faltantes: " + itemsFaltantes,
-                itemsInsertados: 0
-            })
+                itemsInsertados: 0,
+            });
             // res.send("Items faltantes: " + itemsFaltantes);
         } else if (itemsFaltantes.length === 0 && itemsEnCero.length !== 0) {
             return res.status(500).json({
                 tipo: "error",
                 message: "Items En Cero: " + itemsEnCero,
-                itemsInsertados: 0
-            })
+                itemsInsertados: 0,
+            });
             // res.send(" Items en cero: " + itemsEnCero);
         }
     }
