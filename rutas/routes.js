@@ -74,18 +74,26 @@ router.post("/consultaestado", async (req, res) => {
         const request = new sql.Request(conn);
         for (let i = 0; i < identificadores.length; i++) {
              request.input("identificador" + i, identificadores[i]);
-             let estadoId = await request.query(`SELECT 
-             CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
-             , SAR_FCRMVH_ERRMSG [MENSAJE]
-             , ISNULL(FCRMVH_MODFOR,'') [MODULO]
-             , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
-             , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
-         FROM SAR_FCRMVH 
-             LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
-                             AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
-         WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
-         /* AND SAR_FCRMVH_STATUS='E' */
-         `) 
+        //      let estadoId = await request.query(`SELECT 
+        //      CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
+        //      , SAR_FCRMVH_ERRMSG [MENSAJE]
+        //      , ISNULL(FCRMVH_MODFOR,'') [MODULO]
+        //      , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
+        //      , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
+        //  FROM SAR_FCRMVH 
+        //      LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
+        //                      AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
+        //  WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
+        //  /* AND SAR_FCRMVH_STATUS='E' */
+        //  `) 
+            let estadoId = await  request.query(`SELECT
+            CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
+            , SAR_FCRMVH_ERRMSG [MENSAJE]
+            , ISNULL(SAR_FCRMVH_MODFVT,SAR_FCRMVH_MODFOR) [MODULO]
+            , ISNULL(SAR_FCRMVH_CODFVT,SAR_FCRMVH_CODFOR) [CODIGO]
+            , ISNULL(SAR_FCRMVH_NROFVT,SAR_FCRMVH_NROFOR) [NUMERO]
+     FROM SAR_FCRMVH
+     WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i}`)
             console.log('estadoId');
             console.log(estadoId.rowsAffected[0]);
             const objItems = {
@@ -110,6 +118,7 @@ router.post("/consultaestado", async (req, res) => {
         console.log(arrayResponse);
         return res.status(200).json(arrayResponse);
     } catch (error) {
+        console.log(error);
         return res.json({
             tipo: "error",
             message: "Ocurrio un error"
