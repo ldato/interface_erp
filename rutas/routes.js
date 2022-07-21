@@ -218,6 +218,7 @@ router.post("/registrofactura222", async (req, res) => {
     console.log(items);
     let itemsFaltantes = [];
     let itemsEnCero = [];
+    let itemsMas60 = [];
 
     // let estado = "N";
     //let mensajeError; //ver como realizar el tratamiento del error
@@ -308,6 +309,9 @@ router.post("/registrofactura222", async (req, res) => {
                 if (objEscribir.items[i].cantidad === 0) {
                     itemsEnCero.push(objEscribir.items[i].artCode);
                 }
+                if (objEscribir.items[i].nrocertificado.length>59) {
+                    itemsMas60.push(objEscribir.items[i].artCode);
+                }
             } catch (error) {
                 console.log(error);
             }
@@ -321,7 +325,7 @@ router.post("/registrofactura222", async (req, res) => {
         // res.send(objEscribir);
         console.log("Articulos Faltantes LENGHT");
         console.log(itemsFaltantes.length);
-        if (itemsFaltantes.length === 0 && itemsEnCero.length === 0) {
+        if (itemsFaltantes.length === 0 && itemsEnCero.length === 0 && itemsMas60.length === 0) {
             //res.send(objEscribir);
             request.input("identificador", objEscribir.identificador);
             request.input("estado", "N");
@@ -441,7 +445,14 @@ router.post("/registrofactura222", async (req, res) => {
                 itemsInsertados: 0
             })
             // res.send(" Items en cero: " + itemsEnCero);
+        } else if (itemsMas60.length !== 0) {
+            return res.status(500).json({
+                tipo: "error",
+                message: "Items que superan caracteres: " + itemsMas60,
+                itemsInsertados: 0
+            })
         }
+        
     }
 });
 
