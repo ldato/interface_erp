@@ -74,18 +74,7 @@ router.post("/consultaestado", async (req, res) => {
         const request = new sql.Request(conn);
         for (let i = 0; i < identificadores.length; i++) {
              request.input("identificador" + i, identificadores[i]);
-        //      let estadoId = await request.query(`SELECT 
-        //      CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
-        //      , SAR_FCRMVH_ERRMSG [MENSAJE]
-        //      , ISNULL(FCRMVH_MODFOR,'') [MODULO]
-        //      , ISNULL(FCRMVH_CODFOR,'') [CODIGO]
-        //      , ISNULL(FCRMVH_NROFOR,0) [NUMERO]
-        //  FROM SAR_FCRMVH 
-        //      LEFT JOIN FCRMVH ON SAR_FCRMVH_EMPFVT = FCRMVH_CODEMP AND SAR_FCRMVH_MODFVT=FCRMVH_MODFOR
-        //                      AND SAR_FCRMVH_CODFVT = FCRMVH_CODFOR AND SAR_FCRMVH_NROFVT = FCRMVH_NROFOR
-        //  WHERE SAR_FCRMVH_IDENTI = @identificador`+`${i} 
-        //  /* AND SAR_FCRMVH_STATUS='E' */
-        //  `) 
+      
             let estadoId = await  request.query(`SELECT
             CASE SAR_FCRMVH_STATUS WHEN 'E' THEN 'ERROR' WHEN 'S' THEN 'PROCESADO' ELSE 'NO PROCESADO' END [ESTADO]
             , SAR_FCRMVH_ERRMSG [MENSAJE]
@@ -97,12 +86,7 @@ router.post("/consultaestado", async (req, res) => {
             console.log('estadoId');
             console.log(estadoId.rowsAffected[0]);
             const objItems = {
-                // idOperacion: identificadores[i],
-                // estado: estadoId.recordset[0].ESTADO === "" || estadoId.recordset[0].ESTADO === undefined ? null : estadoId.recordset[0].ESTADO,
-                // mensaje: estadoId.recordset[0].MENSAJE === "" || estadoId.recordset[0].MENSAJE ===undefined ? null : estadoId.recordset[0].MENSAJE,
-                // modulo: estadoId.recordset[0].MODULO === "" || estadoId.recordset[0].MODULO ===undefined ? null : estadoId.recordset[0].MODULO,
-                // codigo: estadoId.recordset[0].CODIGO === "" || estadoId.recordset[0].CODIGO ===undefined ? null : estadoId.recordset[0].CODIGO,
-                // numero: estadoId.recordset[0].NUMERO === "" || estadoId.recordset[0].NUMERO ===undefined ? null : estadoId.recordset[0].NUMERO
+             
                 idOperacion: identificadores[i],
                 estado: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].ESTADO,
                 mensaje: estadoId.rowsAffected[0] === 0 ? "Inexistente" : estadoId.recordset[0].MENSAJE,
@@ -187,13 +171,8 @@ router.post("/pruebaendpoint", async (req, res) => {
 
 //-------------------FIN ENDPOINT DE PRUEBA TOKEN-------------------------------------
 
-// router.post("/registrofactura", async (req, res) => {
-
-// });
-
 router.post("/registrofactura222", async (req, res) => {
-    //let items = [];
-    // let item = {artCode: "", cantidad:"", precioUnit:"", totalItem:""};
+    
     let objEscribir = {
         nroCliente: "",
         identificador: "",
@@ -201,7 +180,7 @@ router.post("/registrofactura222", async (req, res) => {
         empresaFC: "CAC01",
         cuit: "",
         listaPrecio: "",
-        estado: "N",
+        estado: "X", //Valor distinto de N - Se actualiza luego a N
         circuitoDelQueParte: "",
         observaciones: "",
         email: "",
@@ -294,11 +273,7 @@ router.post("/registrofactura222", async (req, res) => {
                         objEscribir.items[i].artCode +
                         ";"
                 );
-                // let responseArt = await request.query(`SELECT * FROM USR_STTPRI
-                // WHERE USR_STTPRI_TIPPRO = 'VISAC'
-                // AND USR_STTPRI_CODLIS = @listaPrecio
-                // AND USR_STTPRI_ARTCOD = @artCode`+ i + `;`);
-                // let responseArt = query;
+                
                 let articulo = await responseArt;
                 console.log("Lenght del Articulo");
                 console.log(articulo.recordset.length);
@@ -328,7 +303,7 @@ router.post("/registrofactura222", async (req, res) => {
         if (itemsFaltantes.length === 0 && itemsEnCero.length === 0 && itemsMas60.length === 0) {
             //res.send(objEscribir);
             request.input("identificador", objEscribir.identificador);
-            request.input("estado", "N");
+            request.input("estado", objEscribir.estado);
             request.input("nroCuenta", objEscribir.nroCliente);
             request.input("circuitoOrigen", objEscribir.circuitoDelQueParte);
             request.input("circuitoParte", objEscribir.circuitoDelQueParte);
@@ -357,9 +332,9 @@ router.post("/registrofactura222", async (req, res) => {
 
                 if (consultaCabecera.recordset.length === 0) {
                     return res.send("Ocurrio un problema al insertar la cabecera");
-                } else {
-                    //res.send("La cabecera fue insertada correctamente");
-                    for (let i = 0; i < objEscribir.items.length; i++) {
+                } else {            
+                    for (let i = 0; i < objEscribir.items.length; i++) {                    
+                        
                         //SE MANDO MAIL A WILLIAM CON LOS ITEMS POR LA TABLA
                         request.input("identificador" + i, objEscribir.identificador);
                         request.input("nroItem" + i, objEscribir.items[i].nroItem);
@@ -368,47 +343,44 @@ router.post("/registrofactura222", async (req, res) => {
                         request.input("cantidad" + i, objEscribir.items[i].cantidad);
                         request.input("nroCert" + i, objEscribir.items[i].nrocertificado);
                         request.input("observaciones" + i, objEscribir.observaciones);
+                       
                         try {
                             let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
                             (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
                             SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
                             VALUES (@identificador`+`${i}, @nroItem`+`${i}, @tipPro`+`${i}, 
                             @producto`+`${i}, @cantidad`+`${i}, NULL,  @nroCert`+`${i}, @observaciones`+`${i});`);
-                        //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
-                        // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
-                        // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
-                        // VALUES (@identificador` + i `, @nroItem` + i `, @tipPro` + i `, 
-                        // @producto` + i `, @cantidad` + i `,@nroCert` + i `, @observaciones` + i `);` );
-
-                        //     let insertItems = await request.query(`INSERT INTO SAR_FCRMVI
-                        // (SAR_FCRMVI_IDENTI, SAR_FCRMVI_NROITM,  SAR_FCRMVI_TIPPRO,  SAR_FCRMVI_ARTCOD,
-                        // SAR_FCRMVI_CANTID,  SAR_FCRMVI_PRECIO,  SAR_FCRMVI_NROCER,  SAR_FCRMVI_TEXTOS)
-                        // VALUES (${objEscribir.identificador}, ${objEscribir.items[i].nroItem}, ${objEscribir.tipoProducto},
-                        //      ${objEscribir.items[i].artCode}, ${objEscribir.items[i].cantidad}, NULL, 
-                        //      ${objEscribir.items[i].nrocertificado}, ${objEscribir.observaciones} );`)
-                        console.log("Objeto insert items");
-                        console.log(insertItems);
-                        console.log("Length de items en Body: " + objEscribir.items.length);
-                        console.log("Length del insert de items: " + insertItems.rowsAffected.length);
-                        if (insertItems.rowsAffected.length === 3) {
-                            res.status(200).json({
-                                tipo: "ok",
-                                mensaje: "Insercion Satisfactoria",
-                                itemsInsertados: objEscribir.items.length
-                            });
-                        } else {
-                            return res.status(500).json({
-                                tipo: "error",
-                                message: "Ocurrio un error al insertar los items",
-                                itemsInsertados: 0
-                            });
-                        }    
-                        //console.log(insertItems.length);
+                    
+                        
                         } catch (error) {
                             console.log(error);
                         }
                                               
                     }
+                    let consultaItems = await request.query(`SELECT * FROM SAR_FCRMVI 
+                            WHERE SAR_FCRMVI_IDENTI = @identificador;`);
+                            console.log("Respuesta Items:");
+                            // console.log(consultaItems.recordset.length);
+                            console.log(consultaItems.recordset);
+                            console.log("Items del front");
+                            console.log(objEscribir.items.length);
+                    if (objEscribir.items.length === consultaItems.recordset.length) {
+                        let updateEstado = await request.query(`UPDATE SAR_FCRMVH SET 
+                        SAR_FCRMVH_STATUS = 'N' WHERE SAR_FCRMVH_IDENTI = @identificador;`);
+                        let executeProcedure = await request.query(`EXEC DAR_KT000278InsCwJmSchedules 'USR_FC'`);
+                        return res.status(200).json({
+                            tipo: "ok",
+                            mensaje: "Insercion Satisfactoria",
+                            itemsInsertados: objEscribir.items.length
+                        });
+                    } else {
+                        return res.status(500).json({
+                            tipo: "error",
+                            message: "Ocurrio un error al insertar los items",
+                            itemsInsertados: 0
+                        });
+                    }  
+
                 }
             } catch (error) {
                 // console.log("error del insert Cabecera");
@@ -425,12 +397,7 @@ router.post("/registrofactura222", async (req, res) => {
                 message: "Items faltantes: " + itemsFaltantes + ", Items En Cero: " + itemsEnCero,
                 itemsInsertados: 0
             })
-            // res.send(
-            //     "Items faltantes: " +
-            //         itemsFaltantes +
-            //         "\nItems en cero: " +
-            //         itemsEnCero
-            // );
+          
         } else if (itemsFaltantes.length !== 0 && itemsEnCero.length === 0) {
             return res.status(500).json({
                 tipo: "error",
